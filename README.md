@@ -1,70 +1,65 @@
-# Getting Started with Create React App
+# FOURMILIÈRE
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Le réseau des petites associations qui œuvrent ensemble pour soutenir les victimes de violences conjugales.
 
-## Available Scripts
+**En ligne :** https://elodiepapillon.github.io/fourmiliere/
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Pourquoi
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Quand une personne fuit un domicile et arrive dans un département où elle n'a aucune attache, le système officiel la renvoie souvent vers des dispositifs qui exigent un lien avec la commune. Le 3919 est régulièrement saturé.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Les petites associations locales, elles, accueillent — mais personne ne les trouve.
 
-### `npm test`
+FOURMILIÈRE rend ce réseau visible.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## Ce que fait l'outil
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+**Pour les personnes qui cherchent de l'aide**
+- Un annuaire des petites associations du département
+- Les horaires réels, les conditions d'accès, ce qu'il faut apporter
+- Une indication claire : l'association accueille-t-elle les personnes venant d'ailleurs ?
+- **Consultable sans connexion internet** : une fois l'application ouverte une première fois, les coordonnées restent disponibles sur l'appareil
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+**Pour les associations**
+- Chaque association rédige et modifie elle-même sa fiche
+- Une fiche de présentation libre : qui nous sommes, les dispositifs proposés, ce que nous ne pouvons pas faire
+- Un statut en un clic : disponible, saturée, fermée
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## Principes
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- **Gratuit** pour tout le monde, sans publicité ni compte à créer
+- **Aucune donnée saisie à la place des associations** : elles seules renseignent leurs informations
+- **Validation avant publication** : une fiche n'apparaît qu'après vérification, pour éviter les fausses coordonnées
+- **Retrait possible à tout moment**
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Périmètre
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Essonne (91) uniquement pour l'instant. L'objectif est de valider la méthode sur un département avant d'envisager une réplication ailleurs.
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## État du projet
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Prototype en cours de construction. L'annuaire et l'inscription fonctionnent ; la synchronisation des statuts en temps réel est en développement.
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Technique
 
-### Analyzing the Bundle Size
+React · Dexie (IndexedDB, cache local hors connexion) · Supabase (base partagée) · GitHub Pages
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Architecture : l'application lit d'abord les données locales, puis se met à jour depuis le serveur quand une connexion est disponible.
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Contact
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Élodie Perrichon
