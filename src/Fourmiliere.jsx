@@ -79,7 +79,7 @@ export default function Fourmiliere() {
     <div style={S.page}>
       <div style={S.header}>
         <h1 style={{ margin: 0 }}>FOURMILIERE</h1>
-        <p style={{ color: '#666', marginTop: 6 }}>Le reseau des petites associations - Essonne</p>
+        <p style={{ color: '#666', marginTop: 6 }}>Le reseau des petites associations qui oeuvrent ensemble pour soutenir les victimes de violences conjugales.</p>
         <span style={{ ...S.badge, background: statut === 'online' ? '#27ae60' : '#e67e22' }}>
           {statut === 'online' ? 'En ligne' : 'Hors connexion - donnees locales'}
         </span>
