@@ -8,143 +8,180 @@ db.version(1).stores({
   urgences: '++id, timestamp'
 });
 
+const SERVICES = ['Domiciliation', 'Hebergement urgence', 'Accueil ecoute', 'Aide juridique', 'Accompagnement demarches'];
+
 export default function Fourmiliere() {
   const [assocs, setAssocs] = useState([]);
   const [statut, setStatut] = useState('online');
-  const [selectedType, setSelectedType] = useState('all');
-  const [nomAssoFilter, setNomAssoFilter] = useState('');
-
-  useEffect(() => {
-    loadAssocs();
-    checkConnection();
-    window.addEventListener('online', () => setStatut('online'));
-    window.addEventListener('offline', () => setStatut('offline'));
-  }, []);
-
-  const loadAssocs = async () => {
-    try {
-      const data = await db.associations.toArray();
-      setAssocs(data);
-    } catch (e) {
-      console.error('Erreur:', e);
-    }
-  };
-
-  const checkConnection = () => {
-    setStatut(navigator.onLine ? 'online' : 'offline');
-  };
-
-  const updateStatutAsso = async (idAsso, nouveauStatut) => {
-    try {
-      await db.associations.update(idAsso, {
-        statut: nouveauStatut,
-        last_update: new Date().toISOString()
-      });
-      loadAssocs();
-    } catch (e) {
-      console.error('Erreur:', e);
-    }
-  };
-
-  const signalUrgence = async () => {
-    const details = prompt('Type urgence?');
-    if (details) {
-      await db.urgences.add({
-        type: details,
-        lieu: 'Essonne',
-        timestamp: new Date().toISOString()
-      });
-    }
-  };
-
-  const addAssoTest = async () => {
-    const assoTest = {
-      nom: prompt('Nom asso?') || 'Asso Test',
-      services: 'Domiciliation',
-      adresse: '123 rue Test',
-      code_postal: '91000',
-      tel: '06 12 34 56 78',
-      horaires: 'Lun-Ven 9-17',
-      statut: 'dispo',
-      last_update: new Date().toISOString()
-    };
-    await db.associations.add(assoTest);
-    loadAssocs();
-  };
-
-  const assosFiltrees = assocs.filter(a => {
-    const matchType = selectedType === 'all' || a.services?.includes(selectedType);
-    const matchNom = nomAssoFilter === '' || a.nom?.toLowerCase().includes(nomAssoFilter.toLowerCase());
-    return matchType && matchNom;
+  const [filtre, setFiltre] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    nom: '', adresse: '', code_postal: '', tel: '', email: '',
+    horaires: '', services: [], conditions: '', accepte_hors_commune: false
   });
 
+  useEffect(() => {
+    const handleOnline = () => setStatut('online');
+    const handleOffline = () => setStatut('offline');
+
+    charger();
+    setStatut(navigator.onLine ? 'online' : 'offline');
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const charger = async () => {
+    try {
+      setAssocs(await db.associations.toArray());
+    } catch (error) {
+      console.error('Erreur lors du chargement des associations :', error);
+    }
+  };
+
+  const majStatut = async (id, s) => {
+    await db.associations.update(id, { statut: s, last_update: new Date().toISOString() });
+    charger();
+  };
+
+  const supprimer = async (id) => {
+    if (window.confirm('Supprimer cette association ?')) {
+      await db.associations.delete(id);
+      charger();
+    }
+  };
+
+  const toggleService = (s) => {
+    setForm(f => ({ ...f, services: f.services.includes(s) ? f.services.filter(x => x !== s) : [...f.services, s] }));
+  };
+
+  const enregistrer = async () => {
+    if (!form.nom.trim()) return alert('Le nom est obligatoire');
+    if (!form.tel.trim()) return alert('Le telephone est obligatoire');
+    if (form.services.length === 0) return alert('Cochez au moins un service');
+    await db.associations.add({ ...form, statut: 'dispo', last_update: new Date().toISOString() });
+    setForm({ nom: '', adresse: '', code_postal: '', tel: '', email: '', horaires: '', services: [], conditions: '', accepte_hors_commune: false });
+    setShowForm(false);
+    charger();
+  };
+
+  const liste = assocs.filter(a =>
+    filtre === '' ||
+    a.nom?.toLowerCase().includes(filtre.toLowerCase()) ||
+    a.services?.join(' ').toLowerCase().includes(filtre.toLowerCase())
+  );
+
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1>🐜 FOURMILIÈRE</h1>
-        <p>Réseau des petites associations Essonne</p>
-        <div style={{...styles.statusBadge, backgroundColor: statut === 'online' ? '#27ae60' : '#e74c3c'}}>
-          {statut === 'online' ? '✓ En ligne' : '⚠️ Hors ligne'}
-        </div>
+    <div style={S.page}>
+      <div style={S.header}>
+        <h1 style={{ margin: 0 }}>FOURMILIERE</h1>
+        <p style={{ color: '#666', marginTop: 6 }}>Le reseau des petites associations - Essonne</p>
+        <span style={{ ...S.badge, background: statut === 'online' ? '#27ae60' : '#e67e22' }}>
+          {statut === 'online' ? 'En ligne' : 'Hors connexion - donnees locales'}
+        </span>
       </div>
 
-      <div style={styles.urgenceBox}>
-        <h3>🚨 Urgence?</h3>
-        <button onClick={signalUrgence} style={styles.btnUrgence}>SIGNALER URGENCE</button>
-      </div>
+      {!showForm && (
+        <button onClick={() => setShowForm(true)} style={S.btnPrincipal}>
+          Inscrire mon association
+        </button>
+      )}
 
-      <div style={styles.filterBox}>
-        <input type="text" placeholder="Chercher..." value={nomAssoFilter} onChange={(e) => setNomAssoFilter(e.target.value)} style={styles.input} />
-        <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} style={styles.select}>
-          <option value="all">Tous</option>
-          <option value="Domiciliation">Domiciliation</option>
-          <option value="Hébergement">Hébergement</option>
-        </select>
-      </div>
+      {showForm && (
+        <div style={S.form}>
+          <h2 style={{ marginTop: 0 }}>Inscrire mon association</h2>
+          <p style={S.aide}>Seule votre association peut renseigner ces informations. Elles seront visibles par les personnes qui cherchent de l'aide.</p>
 
-      <div style={styles.assocList}>
-        <h2>Les fourmis ({assosFiltrees.length})</h2>
-        {assosFiltrees.length === 0 ? (
-          <div style={styles.empty}>
-            <p>Aucune asso</p>
-            <button onClick={addAssoTest} style={styles.btnAdd}>+ Ajouter une asso</button>
+          <label style={S.label}>Nom de l'association *</label>
+          <input style={S.input} value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} />
+
+          <label style={S.label}>Adresse</label>
+          <input style={S.input} value={form.adresse} onChange={e => setForm({ ...form, adresse: e.target.value })} />
+
+          <label style={S.label}>Code postal</label>
+          <input style={S.input} value={form.code_postal} onChange={e => setForm({ ...form, code_postal: e.target.value })} />
+
+          <label style={S.label}>Telephone *</label>
+          <input style={S.input} value={form.tel} onChange={e => setForm({ ...form, tel: e.target.value })} />
+
+          <label style={S.label}>Email</label>
+          <input style={S.input} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+
+          <label style={S.label}>Horaires reels d'accueil</label>
+          <input style={S.input} placeholder="ex: lundi et jeudi 9h-12h" value={form.horaires} onChange={e => setForm({ ...form, horaires: e.target.value })} />
+
+          <label style={S.label}>Services proposes *</label>
+          <div style={{ marginBottom: 14 }}>
+            {SERVICES.map(s => (
+              <label key={s} style={S.check}>
+                <input type="checkbox" checked={form.services.includes(s)} onChange={() => toggleService(s)} /> {s}
+              </label>
+            ))}
           </div>
-        ) : (
-          assosFiltrees.map(asso => (
-            <div key={asso.id} style={{...styles.assoCard, borderLeft: `4px solid ${asso.statut === 'dispo' ? '#27ae60' : '#e74c3c'}`}}>
-              <div style={styles.assoHeader}>
-                <h3>{asso.nom}</h3>
-                <span>{asso.statut === 'dispo' ? '🟢' : '🔴'}</span>
-              </div>
-              <p><strong>Services:</strong> {asso.services}</p>
-              <p><strong>Adresse:</strong> {asso.adresse}</p>
-              <p><strong>Tél:</strong> {asso.tel}</p>
-              <div style={styles.buttonsGroup}>
-                <button onClick={() => updateStatutAsso(asso.id, 'dispo')} style={{...styles.btnStatut, backgroundColor: '#27ae60'}}>🟢 Dispo</button>
-                <button onClick={() => updateStatutAsso(asso.id, 'fermee')} style={{...styles.btnStatut, backgroundColor: '#e74c3c'}}>🔴 Fermée</button>
-              </div>
+
+          <label style={S.label}>Conditions d'acces</label>
+          <textarea style={{ ...S.input, height: 70 }} placeholder="ex: sur rendez-vous, justificatif de domicile demande..." value={form.conditions} onChange={e => setForm({ ...form, conditions: e.target.value })} />
+
+          <label style={{ ...S.check, background: '#fff8e1', padding: 10, borderRadius: 6 }}>
+            <input type="checkbox" checked={form.accepte_hors_commune} onChange={e => setForm({ ...form, accepte_hors_commune: e.target.checked })} />
+            {' '}Nous accueillons les personnes venant d'une autre commune ou d'un autre departement
+          </label>
+
+          <div style={{ marginTop: 18 }}>
+            <button onClick={enregistrer} style={S.btnPrincipal}>Enregistrer</button>
+            <button onClick={() => setShowForm(false)} style={S.btnGris}>Annuler</button>
+          </div>
+        </div>
+      )}
+
+      <input style={{ ...S.input, marginTop: 20 }} placeholder="Rechercher une association ou un service..." value={filtre} onChange={e => setFiltre(e.target.value)} />
+
+      <div style={S.bloc}>
+        <h2 style={{ marginTop: 0 }}>Associations inscrites ({liste.length})</h2>
+        {liste.length === 0 && <p style={{ color: '#999' }}>Aucune association pour le moment.</p>}
+        {liste.map(a => (
+          <div key={a.id} style={{ ...S.carte, borderLeft: '5px solid ' + (a.statut === 'dispo' ? '#27ae60' : a.statut === 'saturee' ? '#f39c12' : '#e74c3c') }}>
+            <h3 style={{ margin: '0 0 8px' }}>{a.nom}</h3>
+            <p style={S.ligne}><b>Services :</b> {Array.isArray(a.services) ? a.services.join(', ') : a.services}</p>
+            <p style={S.ligne}><b>Adresse :</b> {a.adresse} {a.code_postal}</p>
+            <p style={S.ligne}><b>Telephone :</b> <a href={'tel:' + a.tel}>{a.tel}</a></p>
+            {a.email && <p style={S.ligne}><b>Email :</b> {a.email}</p>}
+            <p style={S.ligne}><b>Horaires :</b> {a.horaires || 'non renseignes'}</p>
+            {a.conditions && <p style={S.ligne}><b>Conditions :</b> {a.conditions}</p>}
+            {a.accepte_hors_commune && <p style={{ ...S.ligne, color: '#27ae60', fontWeight: 'bold' }}>Accueille les personnes hors commune</p>}
+            <div style={{ marginTop: 10 }}>
+              <button onClick={() => majStatut(a.id, 'dispo')} style={{ ...S.btnMini, background: '#27ae60' }}>Disponible</button>
+              <button onClick={() => majStatut(a.id, 'saturee')} style={{ ...S.btnMini, background: '#f39c12' }}>Saturee</button>
+              <button onClick={() => majStatut(a.id, 'fermee')} style={{ ...S.btnMini, background: '#e74c3c' }}>Fermee</button>
+              <button onClick={() => supprimer(a.id)} style={{ ...S.btnMini, background: '#7f8c8d' }}>Supprimer</button>
             </div>
-          ))
-        )}
+            <p style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
+              Mis a jour : {a.last_update ? new Date(a.last_update).toLocaleString('fr-FR') : 'jamais'}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-const styles = {
-  container: { fontFamily: 'Arial', maxWidth: '1200px', margin: '0 auto', padding: '20px', backgroundColor: '#f5f5f5', minHeight: '100vh' },
-  header: { backgroundColor: 'white', padding: '30px', borderRadius: '10px', marginBottom: '20px', borderBottom: '4px solid #e74c3c' },
-  statusBadge: { display: 'inline-block', padding: '10px 15px', color: 'white', borderRadius: '5px', fontWeight: 'bold' },
-  urgenceBox: { backgroundColor: '#fff3cd', padding: '20px', marginBottom: '20px', borderRadius: '10px', borderLeft: '4px solid #ffc107' },
-  btnUrgence: { padding: '12px 24px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '5px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
-  filterBox: { display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
-  input: { flex: 1, minWidth: '200px', padding: '10px', border: '1px solid #ddd', borderRadius: '5px' },
-  select: { padding: '10px', border: '1px solid #ddd', borderRadius: '5px' },
-  assocList: { backgroundColor: 'white', padding: '20px', borderRadius: '10px', marginBottom: '20px' },
-  assoCard: { borderRadius: '5px', padding: '15px', marginBottom: '15px', backgroundColor: '#f9f9f9' },
-  assoHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
-  buttonsGroup: { display: 'flex', gap: '5px', marginTop: '10px' },
-  btnStatut: { padding: '8px 12px', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' },
-  btnAdd: { padding: '10px 20px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' },
-  empty: { textAlign: 'center', padding: '40px 20px', color: '#999' }
+const S = {
+  page: { fontFamily: 'system-ui, Arial, sans-serif', maxWidth: 900, margin: '0 auto', padding: 20, background: '#f4f4f4', minHeight: '100vh' },
+  header: { background: '#fff', padding: 24, borderRadius: 10, borderTop: '5px solid #c0392b', marginBottom: 16 },
+  badge: { display: 'inline-block', padding: '6px 12px', color: '#fff', borderRadius: 4, fontSize: 13, fontWeight: 'bold' },
+  form: { background: '#fff', padding: 24, borderRadius: 10, marginBottom: 16 },
+  aide: { background: '#eef6ff', padding: 12, borderRadius: 6, fontSize: 14, color: '#34495e' },
+  label: { display: 'block', fontWeight: 'bold', fontSize: 14, marginBottom: 4, marginTop: 12 },
+  input: { width: '100%', padding: 10, border: '1px solid #ccc', borderRadius: 5, fontSize: 15, boxSizing: 'border-box' },
+  check: { display: 'block', marginBottom: 6, fontSize: 15 },
+  bloc: { background: '#fff', padding: 24, borderRadius: 10, marginTop: 16 },
+  carte: { background: '#fafafa', padding: 16, borderRadius: 6, marginBottom: 14 },
+  ligne: { margin: '4px 0', fontSize: 15 },
+  btnPrincipal: { padding: '12px 22px', background: '#c0392b', color: '#fff', border: 'none', borderRadius: 5, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', marginRight: 8 },
+  btnGris: { padding: '12px 22px', background: '#95a5a6', color: '#fff', border: 'none', borderRadius: 5, fontSize: 16, cursor: 'pointer' },
+  btnMini: { padding: '7px 12px', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginRight: 6, fontSize: 13 }
 };
