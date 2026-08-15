@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dexie } from 'dexie';
+import { supabase } from './supabaseClient';
 
 const db = new Dexie('FourmiliereDB');
 db.version(1).stores({
@@ -17,7 +18,8 @@ export default function Fourmiliere() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     nom: '', adresse: '', code_postal: '', tel: '', email: '',
-    horaires: '', services: [], conditions: '', accepte_hors_commune: false
+horaires: '', services: [], conditions: '', accepte_hors_commune: false,
+    presentation: '', dispositifs: '', a_apporter: '', limites: ''
   });
 
   useEffect(() => {
@@ -35,13 +37,18 @@ export default function Fourmiliere() {
     };
   }, []);
 
-  const charger = async () => {
-    try {
-      setAssocs(await db.associations.toArray());
-    } catch (error) {
-      console.error('Erreur lors du chargement des associations :', error);
-    }
-  };
+const charger = async () => {
+    setAssocs(await db.associations.toArray());
+    if (!navigator.onLine) return;
+    const { data, error } = await supabase
+      .from('associations')
+      .select('*')
+      .eq('valide', true);
+    if (error || !data) return;
+    await db.associations.clear();
+    await db.associations.bulkPut(data);
+    setAssocs(await db.associations.toArray());
+  };    
 
   const majStatut = async (id, s) => {
     await db.associations.update(id, { statut: s, last_update: new Date().toISOString() });
@@ -63,9 +70,12 @@ export default function Fourmiliere() {
     if (!form.nom.trim()) return alert('Le nom est obligatoire');
     if (!form.tel.trim()) return alert('Le telephone est obligatoire');
     if (form.services.length === 0) return alert('Cochez au moins un service');
-    await db.associations.add({ ...form, statut: 'dispo', last_update: new Date().toISOString() });
-    setForm({ nom: '', adresse: '', code_postal: '', tel: '', email: '', horaires: '', services: [], conditions: '', accepte_hors_commune: false });
-    setShowForm(false);
+if (!navigator.onLine) return alert('Vous etes hors connexion. Reessayez une fois connectee.');
+    const fiche = { ...form, statut: 'dispo', valide: false, last_update: new Date().toISOString() };
+    const { error } = await supabase.from('associations').insert([fiche]);
+    if (error) return alert('Erreur envoi : ' + error.message);
+    alert('Merci ! Votre fiche a bien ete envoyee. Elle apparaitra apres verification.');
+    setForm({ nom: '', adresse: '', code_postal: '', tel: '', email: '', horaires: '', services: [], conditions: '', accepte_hors_commune: false, presentation: '', dispositifs: '', a_apporter: '', limites: '' });    setShowForm(false);
     charger();
   };
 
@@ -125,6 +135,20 @@ export default function Fourmiliere() {
 
           <label style={S.label}>Conditions d'acces</label>
           <textarea style={{ ...S.input, height: 70 }} placeholder="ex: sur rendez-vous, justificatif de domicile demande..." value={form.conditions} onChange={e => setForm({ ...form, conditions: e.target.value })} />
+            <h3 style={{ marginTop: 24, marginBottom: 4 }}>Fiche de presentation</h3>
+          <p style={S.aide}>Ces informations aident les personnes a savoir si elles peuvent pousser votre porte. Ecrivez avec vos mots.</p>
+
+          <label style={S.label}>Qui nous sommes</label>
+          <textarea style={{ ...S.input, height: 70 }} placeholder="En quelques lignes : votre association, depuis quand, par qui" value={form.presentation} onChange={e => setForm({ ...form, presentation: e.target.value })} />
+
+          <label style={S.label}>Les soutiens et dispositifs que nous proposons</label>
+          <textarea style={{ ...S.input, height: 110 }} placeholder="ex: domiciliation postale, accompagnement au depot de plainte, aide au dossier CAF, mise a l'abri quelques nuits, vestiaire, garde d'enfants pendant les rendez-vous..." value={form.dispositifs} onChange={e => setForm({ ...form, dispositifs: e.target.value })} />
+
+          <label style={S.label}>Ce qu'il faut apporter ou preparer</label>
+          <textarea style={{ ...S.input, height: 70 }} placeholder="ex: une piece d'identite si vous l'avez. Rien d'obligatoire pour un premier contact." value={form.a_apporter} onChange={e => setForm({ ...form, a_apporter: e.target.value })} />
+
+          <label style={S.label}>Ce que nous ne pouvons pas faire</label>
+          <textarea style={{ ...S.input, height: 70 }} placeholder="ex: nous n'avons pas d'hebergement ni d'avocat sur place. Nous orientons vers..." value={form.limites} onChange={e => setForm({ ...form, limites: e.target.value })} />
 
           <label style={{ ...S.check, background: '#fff8e1', padding: 10, borderRadius: 6 }}>
             <input type="checkbox" checked={form.accepte_hors_commune} onChange={e => setForm({ ...form, accepte_hors_commune: e.target.checked })} />
@@ -152,6 +176,14 @@ export default function Fourmiliere() {
             {a.email && <p style={S.ligne}><b>Email :</b> {a.email}</p>}
             <p style={S.ligne}><b>Horaires :</b> {a.horaires || 'non renseignes'}</p>
             {a.conditions && <p style={S.ligne}><b>Conditions :</b> {a.conditions}</p>}
+            {(a.presentation || a.dispositifs || a.a_apporter || a.limites) && (
+              <div style={S.fiche}>
+                {a.presentation && <p style={S.ligne}><b>Qui nous sommes :</b> {a.presentation}</p>}
+                {a.dispositifs && <p style={S.ligne}><b>Soutiens et dispositifs :</b> {a.dispositifs}</p>}
+                {a.a_apporter && <p style={S.ligne}><b>A apporter :</b> {a.a_apporter}</p>}
+                {a.limites && <p style={S.ligne}><b>Ce que nous ne faisons pas :</b> {a.limites}</p>}
+              </div>
+            )}
             {a.accepte_hors_commune && <p style={{ ...S.ligne, color: '#27ae60', fontWeight: 'bold' }}>Accueille les personnes hors commune</p>}
             <div style={{ marginTop: 10 }}>
               <button onClick={() => majStatut(a.id, 'dispo')} style={{ ...S.btnMini, background: '#27ae60' }}>Disponible</button>
@@ -181,6 +213,7 @@ const S = {
   bloc: { background: '#fff', padding: 24, borderRadius: 10, marginTop: 16 },
   carte: { background: '#fafafa', padding: 16, borderRadius: 6, marginBottom: 14 },
   ligne: { margin: '4px 0', fontSize: 15 },
+  fiche: { background: '#fff', border: '1px solid #e0e0e0', borderRadius: 6, padding: 12, marginTop: 10 },
   btnPrincipal: { padding: '12px 22px', background: '#c0392b', color: '#fff', border: 'none', borderRadius: 5, fontSize: 16, fontWeight: 'bold', cursor: 'pointer', marginRight: 8 },
   btnGris: { padding: '12px 22px', background: '#95a5a6', color: '#fff', border: 'none', borderRadius: 5, fontSize: 16, cursor: 'pointer' },
   btnMini: { padding: '7px 12px', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginRight: 6, fontSize: 13 }
