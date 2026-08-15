@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/fourmiliere/static/css/main.f855e6bc.css",
+    "main.js": "/fourmiliere/static/js/main.f3684e4c.js",
+    "static/js/453.a73b928c.chunk.js": "/fourmiliere/static/js/453.a73b928c.chunk.js",
+    "index.html": "/fourmiliere/index.html",
+    "main.f855e6bc.css.map": "/fourmiliere/static/css/main.f855e6bc.css.map",
+    "main.f3684e4c.js.map": "/fourmiliere/static/js/main.f3684e4c.js.map",
+    "453.a73b928c.chunk.js.map": "/fourmiliere/static/js/453.a73b928c.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f855e6bc.css",
+    "static/js/main.f3684e4c.js"
+  ]
+}
