@@ -50,11 +50,29 @@ const charger = async () => {
     setAssocs(await db.associations.toArray());
   };    
 
-  const majStatut = async (id, s) => {
-    await db.associations.update(id, { statut: s, last_update: new Date().toISOString() });
+const majStatut = async (id, s) => {
+    const maj = { statut: s, last_update: new Date().toISOString() };
+    await db.associations.update(id, maj);
+    setAssocs(await db.associations.toArray());
+    if (!navigator.onLine) {
+      alert("Hors connexion : le changement n'est visible que sur cet appareil.");
+      return;
+    }
+    const { data, error } = await supabase
+      .from('associations')
+      .update(maj)
+      .eq('id', id)
+      .select();
+    if (error) {
+      alert("Le changement n'a pas pu etre envoye : " + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert("La base a refuse la modification. Verifier la regle d'autorisation.");
+      return;
+    }
     charger();
   };
-
   const supprimer = async (id) => {
     if (window.confirm('Supprimer cette association ?')) {
       await db.associations.delete(id);
