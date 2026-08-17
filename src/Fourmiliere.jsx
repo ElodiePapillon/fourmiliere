@@ -97,6 +97,24 @@ if (!navigator.onLine) return alert('Vous etes hors connexion. Reessayez une foi
     charger();
   };
 
+  // Fraicheur du statut affiche
+  const fraicheur = (date) => {
+    if (!date) return "date inconnue";
+    const jours = Math.floor((Date.now() - new Date(date)) / 86400000);
+    if (jours < 1) return "mis a jour aujourd'hui";
+    if (jours === 1) return "mis a jour hier";
+    if (jours < 7) return "mis a jour il y a " + jours + " jours";
+    if (jours < 31) return "mis a jour il y a " + Math.floor(jours / 7) + " sem.";
+    return "mis a jour il y a plus d'un mois";
+  };
+
+  const perime = (date) => {
+    if (!date) return true;
+    return (Date.now() - new Date(date)) / 86400000 >= 7;
+  };
+
+  const LIBELLE = { dispo: 'Disponible', saturee: 'Saturee', fermee: 'Fermee' };
+
   const liste = assocs.filter(a =>
     filtre === '' ||
     a.nom?.toLowerCase().includes(filtre.toLowerCase()) ||
@@ -209,8 +227,14 @@ if (!navigator.onLine) return alert('Vous etes hors connexion. Reessayez une foi
               <button onClick={() => majStatut(a.id, 'fermee')} style={{ ...S.btnMini, background: '#e74c3c' }}>Fermee</button>
               <button onClick={() => supprimer(a.id)} style={{ ...S.btnMini, background: '#7f8c8d' }}>Supprimer</button>
             </div>
-            <p style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
-              Mis a jour : {a.last_update ? new Date(a.last_update).toLocaleString('fr-FR') : 'jamais'}
+            <p style={{ fontSize: 14, marginTop: 10, marginBottom: 0 }}>
+              <b>{LIBELLE[a.statut] || 'Statut inconnu'}</b>
+              <span style={{ color: perime(a.last_update) ? '#c0392b' : '#888' }}>
+                {' - ' + fraicheur(a.last_update)}
+              </span>
+              {perime(a.last_update) && (
+                <b style={{ color: '#c0392b' }}> - a confirmer par telephone</b>
+              )}
             </p>
           </div>
         ))}
